@@ -1,0 +1,21 @@
+[
+  {
+    "modid": "committee",
+    "name": "Committee",
+    "description": "",
+    "version": "1.1.0-0fafef441b88",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "TBM",
+      "KMatias",
+      "sn01",
+      "Pliv"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

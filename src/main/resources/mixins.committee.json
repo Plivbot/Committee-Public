@@ -1,0 +1,37 @@
+{
+  "required": true,
+  "compatibilityLevel": "JAVA_8",
+  "package": "me.committee.api.mixin.mixins",
+  "refmap": "mixins.committee.refmap.json",
+  "mixins": [
+    "MixinBlock",
+    "MixinBlockSoulSand",
+    "MixinBlockWeb",
+    "MixinEntityPlayer",
+    "MixinLayerArmorBase",
+    "MixinPlayerControllerMP",
+    "accessors.AccessorCPacketPlayerTryUseItemOnBlock"
+  ],
+  "client": [
+    "MixinAbstractClientPlayer",
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinGuiIngame",
+    "MixinGuiPlayerTabOverlay",
+    "MixinItemRenderer",
+    "MixinMinecraft",
+    "MixinNetHandlerPlayClient",
+    "MixinNetworkManager",
+    "MixinRender",
+    "MixinRenderFish",
+    "MixinRenderGlobal",
+    "MixinTileEntityEnchantmentTableRenderer",
+    "accessors.AccessorActiveRenderInfo",
+    "accessors.AccessorCPacketChatMessage",
+    "accessors.AccessorCPacketPlayer",
+    "accessors.AccessorEntityRenderer",
+    "accessors.AccessorMinecraft",
+    "accessors.AccessorRenderManager",
+    "accessors.AccessorTimer"
+  ]
+}

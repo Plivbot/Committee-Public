@@ -1,0 +1,3 @@
+include 'committee-backend'
+include 'committee-packetapi'
+rootProject.name = 'Committee'

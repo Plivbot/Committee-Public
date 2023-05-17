@@ -1,0 +1,177 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
+        maven { url = 'https://plugins.gradle.org/m2' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+version = modVersion
+group = modGroup
+archivesBaseName = modBaseName
+
+minecraft {
+    version = project.forgeVersion
+    runDir = "run"
+    coreMod = 'me.committee.api.mixin.CommitteeCoreMod'
+
+    mappings = project.mcpVersion
+}
+
+jar.manifest.attributes(
+        'FMLCorePluginContainsFMLMod': true,
+        'FMLCorePlugin': 'me.committee.api.mixin.CommitteeCoreMod',
+        'ForceLoadAsMod': true,
+        'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker'
+)
+
+// most of the following method is from the earthhack build script
+
+// add the hash of the last git commit to the version
+boolean HASH = true
+
+// clear build/libs always so we keep old jars away
+boolean CLEAR = true
+
+String title = getGitCommitHash()
+
+compileJava {
+    // idk this gets called when u do anything but whatever
+    File versionFile = file 'version'
+    String contents = versionFile.getText('UTF-8')
+    String[] split = contents.split('\\.')
+    int lastVersion = Integer.parseInt(split[2].split('-')[0])
+
+    contents = split[0] + '.' + split[1] + '.' + (lastVersion)
+
+    if (HASH) {
+        contents = split[0] + '.' + split[1] + '.' + lastVersion + '-' + title
+    }
+
+    versionFile.write(contents, 'UTF-8')
+
+    version contents
+
+    sourceCompatibility = targetCompatibility = '1.8'
+    // Tbh it would be much easier if we could assign this differently
+    // instead of writing it, but StackOverflow didn't give a working
+    // solution for that. One looked promising but it caused duplicate classes.
+    File update = file 'src/main/java/me/committee/Committee.java'
+    contents = update.getText('UTF-8')
+    contents = contents.replaceAll('VERSION = "(.*?)"', 'VERSION = "' + project.version + '"')
+    update.write(contents, 'UTF-8')
+    update = file 'src/main/resources/mcmod.info'
+    contents = update.getText('UTF-8')
+    contents = contents.replaceAll('"version": "(.*?)"', '"version": "' + project.version + '"')
+    update.write(contents, 'UTF-8')
+
+    if (CLEAR) {
+        File libs = file buildDir.getAbsolutePath() + '/libs/'
+        if (libs.exists() && libs.isDirectory()) {
+            for (File file in libs.listFiles()) {
+                file.delete()
+            }
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/maven' }
+}
+
+dependencies {
+    compile("org.spongepowered:mixin:0.7.4-SNAPSHOT") {
+        exclude module: 'launchwrapper'
+        exclude module: 'guava'
+        exclude module: 'gson'
+        exclude module: 'commons-io'
+    }
+
+    // reflections 0.10.x uses the apache 2.0 license
+    // 0.9.x and down uses do what the fuck you ever want license (i think)
+    compile 'org.reflections:reflections:0.10.2'
+    compile 'org.slf4j:slf4j-api:1.7.32'
+
+    implementation project(':committee-packetapi')
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+mixin {
+    add sourceSets.main, 'mixins.committee.refmap.json'
+}
+
+shadowJar {
+    dependencies {
+        include(dependency('org.spongepowered:mixin'))
+        include(dependency('org.reflections:reflections'))
+        include(dependency('org.slf4j:slf4j-api'))
+        include(dependency('org.javassist:javassist'))
+    }
+    exclude 'dummyThing'
+    exclude 'LICENSE.txt'
+
+    classifier = 'shadowed'
+}
+build.dependsOn(shadowJar)
+
+reobf {
+    shadowJar {
+        mappingType = 'SEARGE'
+        classpath = sourceSets.main.compileClasspath
+    }
+}
+
+/**
+ * pasted from earthhack build script
+ * @return
+ */
+def getGitCommitHash() {
+    def gitFolder = "$projectDir/.git/"
+    def takeFromHash = 12
+    /*
+     * '.git/HEAD' contains either
+     *      in case of detached head: the currently checked out commit hash
+     *      otherwise: a reference to a file containing the current commit hash
+     */
+    def head = new File(gitFolder + "HEAD").text.split(":") // .git/HEAD
+    def isCommit = head.length == 1 // e5a7c79edabbf7dd39888442df081b1c9d8e88fd
+    // def isRef = head.length > 1     // ref: refs/heads/master
+
+    if(isCommit) return head[0].trim().take(takeFromHash) // e5a7c79edabb
+
+    def refHead = new File(gitFolder + head[1].trim()) // .git/refs/heads/master
+    refHead.text.trim().take takeFromHash
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include "mcmod.info"
+
+        expand "version": project.version, "mcversion": project.minecraft.version
+    }
+
+    from(sourceSets.main.resources.srcDirs) {
+        exclude "mcmod.info"
+    }
+
+    rename '(.+_at.cfg)', 'META-INF/$1'
+}
